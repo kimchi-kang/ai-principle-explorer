@@ -34,7 +34,7 @@ import {
 } from './components/ImageGenerationStages'
 import { categories } from './data/categories'
 import { getImageExperienceById, imageExperiences } from './data/imageExperiences'
-import { defaultImagePromptSelections, getImagePromptPreset } from './data/imageGeneration'
+import { defaultImagePromptSelections, getImagePromptPreset, imagePromptPresets } from './data/imageGeneration'
 import {
   EXPERIENCE_PROGRESS_VERSION,
   clearSavedProgress,
@@ -52,7 +52,7 @@ import type { Category, CategoryId, ImageComparisonPart, ImageExperienceId, Imag
 function handleButtonKeyDown(event: KeyboardEvent<HTMLButtonElement>, action: () => void) {
   if (event.key === 'Enter' || event.key === ' ') {
     event.preventDefault()
-    action()
+    if (!event.repeat) action()
   }
 }
 
@@ -183,11 +183,11 @@ function HomeStage({
           <span className="eyebrow__marker" aria-hidden="true" />
           AI 원리 탐험 <span className="eyebrow__slash">/</span> 세 가지 체험
         </p>
-        <span className="home-stage__status"><span className="status-dot" aria-hidden="true" /> READY TO EXPLORE</span>
+        <span className="home-stage__status"><span className="status-dot" aria-hidden="true" /> 누구나 시작할 수 있어요</span>
       </div>
       <div className="home-stage__heading">
         <div>
-          <p className="section-kicker">CHOOSE YOUR WAY IN</p>
+          <p className="section-kicker">직접 해보며 이해하는 AI 교실</p>
           <h1 id="home-title" tabIndex={-1}>
             생성형 AI를
             <br />
@@ -217,7 +217,7 @@ function HomeStage({
             <span className="mode-card__bubble mode-card__bubble--two">다음 말은?</span>
             <span className="mode-card__signal">↗</span>
           </span>
-          <span className="mode-card__title">대화할 때의 생성형 AI</span>
+          <span className="mode-card__title">말을 만드는 AI</span>
           <span className="mode-card__description">AI는 어떻게 다음 말을 골라 문장을 만들까요?</span>
           <span className="mode-card__footer">
             <span>질문 → 토큰 → 예상 → 문장</span>
@@ -235,11 +235,12 @@ function HomeStage({
             <span>PIXELS / IMAGE</span>
           </span>
           <span className="mode-card__visual mode-card__visual--reading" aria-hidden="true">
-            <span className="mode-card__pixel-orb">◎</span>
+            <img className="mode-card__photo" src={`${import.meta.env.BASE_URL}${imageExperiences[0].imagePath}`} alt="" />
+            <span className="mode-card__scan">귀 · 무늬 · 모양</span>
             <span className="mode-card__pixel-grid" />
             <span className="mode-card__signal">+</span>
           </span>
-          <span className="mode-card__title">이미지를 읽을 때의 생성형 AI</span>
+          <span className="mode-card__title">사진을 읽는 AI</span>
           <span className="mode-card__description">AI는 사진을 어떻게 숫자와 특징으로 보고 무엇인지 알아갈까요?</span>
           <span className="mode-card__footer">
             <span>사진 → 픽셀 → 특징 → 가능성</span>
@@ -257,12 +258,12 @@ function HomeStage({
             <span>PROMPTS / IMAGE</span>
           </span>
           <span className="mode-card__visual mode-card__visual--image" aria-hidden="true">
-            <span className="mode-card__pixel-orb">◉</span>
-            <span className="mode-card__pixel-grid" />
+            <img className="mode-card__photo" src={`${import.meta.env.BASE_URL}${imagePromptPresets[0].imagePath}`} alt="" />
+            <span className="mode-card__caption">우주복을 입은 고양이, 달 위에서</span>
             <span className="mode-card__signal">+</span>
           </span>
-          <span className="mode-card__title">이미지를 만들 때의 생성형 AI</span>
-          <span className="mode-card__description">AI는 글의 단서를 참고해 흐릿한 노이즈에서 그림을 다듬어 갈까요?</span>
+          <span className="mode-card__title">그림을 그리는 AI</span>
+          <span className="mode-card__description">글로 설명한 장면이 어떻게 한 장의 그림이 될까요?</span>
           <span className="mode-card__footer">
             <span>프롬프트 → 단서 → 노이즈 → 그림</span>
             <span className="mode-card__arrow" aria-hidden="true">↗</span>
@@ -271,7 +272,7 @@ function HomeStage({
       </div>
       <div className="home-stage__principle">
         <span className="home-stage__principle-mark" aria-hidden="true">i</span>
-        <p>세 체험의 공통점: AI는 입력을 숫자로 바꾸고, 배운 패턴을 이용해 다음 결과를 예상해요.</p>
+        <p>AI의 원리를 쉽게 풀어 만든 교육용 체험이에요. 직접 고르고, 결과를 비교하며 배워 보세요.</p>
         <span className="keyboard-hint"><kbd>Enter</kbd><span>첫 번째 체험 시작</span></span>
       </div>
     </section>
@@ -832,7 +833,14 @@ function App() {
 
   useEffect(() => {
     const handleGlobalKeyDown = (event: WindowEventMap['keydown']) => {
-      if (event.defaultPrevented || event.isComposing || event.altKey || event.ctrlKey || event.metaKey) {
+      const target = event.target instanceof Element ? event.target : null
+      const isEditing = target?.closest('input, textarea, select, [contenteditable="true"]')
+      if (event.repeat && !isEditing && ['Enter', 'NumpadEnter', ' ', 'Escape', 'Esc'].includes(event.key)) {
+        event.preventDefault()
+        event.stopPropagation()
+        return
+      }
+      if (event.defaultPrevented || event.repeat || event.isComposing || event.altKey || event.ctrlKey || event.metaKey) {
         return
       }
 
@@ -854,7 +862,6 @@ function App() {
         return
       }
 
-      const target = event.target instanceof Element ? event.target : null
       if (target?.closest('button, a, input, textarea, select, [contenteditable="true"], [data-ignore-global-enter]')) {
         return
       }
@@ -869,8 +876,8 @@ function App() {
       button.click()
     }
 
-    window.addEventListener('keydown', handleGlobalKeyDown)
-    return () => window.removeEventListener('keydown', handleGlobalKeyDown)
+    window.addEventListener('keydown', handleGlobalKeyDown, true)
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, true)
   }, [stage])
 
   const handleCategorySelect = (categoryId: CategoryId) => {
@@ -898,6 +905,24 @@ function App() {
     setSelectedImageId(null)
     setImageStudentGuess(null)
     imageRefs.current = []
+  }
+
+  const resetAllExperience = () => {
+    clearSavedProgress()
+    setStage('welcome')
+    setSelectedCategory(null)
+    setSelectedScenarioId(null)
+    setSelectedAttentionTokenId(null)
+    setStudentCandidateId(null)
+    setCustomInputTokenTexts(null)
+    setHasAskedQuestion(false)
+    resetImageExperience()
+    setImagePromptSelections(defaultImagePromptSelections)
+    setImageDenoiseStep(0)
+    setImageComparePart('place')
+    setImageCheckIds([])
+    attentionRefs.current = []
+    candidateRefs.current = []
   }
 
   const handleImageSelect = (imageId: string) => {
@@ -934,10 +959,16 @@ function App() {
   const selectedCategoryData = categories.find((category) => category.id === selectedCategory)
   const selectedScenario = selectedScenarioId ? getScenarioById(selectedScenarioId) : undefined
   const selectedImageData = getImageExperienceById(selectedImageId)
-  const customInputTokens = selectedScenario && customInputTokenTexts
-    ? createActiveInputTokens(selectedScenario.id, customInputTokenTexts)
-    : null
-  const activeInputTokens = selectedScenario ? customInputTokens ?? selectedScenario.tokens : []
+  const customInputTokens = useMemo(
+    () => selectedScenario && customInputTokenTexts
+      ? createActiveInputTokens(selectedScenario.id, customInputTokenTexts)
+      : null,
+    [selectedScenario, customInputTokenTexts],
+  )
+  const activeInputTokens = useMemo(
+    () => selectedScenario ? customInputTokens ?? selectedScenario.tokens : [],
+    [selectedScenario, customInputTokens],
+  )
   const activeAttentionTargets = selectedScenario
     ? adaptAttentionTargets(selectedScenario, activeInputTokens)
     : []
@@ -1011,7 +1042,7 @@ function App() {
         <div className="site-header__meta">
           <span className="status-dot" aria-hidden="true" />
           <span>학습 모드</span>
-          <span className="site-header__key">ESC</span>
+          <span className="site-header__key">ESC · 이전</span>
         </div>
       </header>
       <main className="stage-frame">
@@ -1094,11 +1125,7 @@ function App() {
                   resetImageExperience()
                   setStage('imageReadSelect')
                 }}
-                onRestart={() => {
-                  clearSavedProgress()
-                  resetImageExperience()
-                  setStage('welcome')
-                }}
+                onRestart={resetAllExperience}
               />
             )
           ) : (
@@ -1316,16 +1343,7 @@ function App() {
                 setCustomInputTokenTexts(null)
                 setStage('questions')
               }}
-              onRestart={() => {
-                clearSavedProgress()
-                setSelectedCategory(null)
-                setSelectedScenarioId(null)
-                setHasAskedQuestion(false)
-                setSelectedAttentionTokenId(null)
-                setStudentCandidateId(null)
-                setCustomInputTokenTexts(null)
-                setStage('welcome')
-              }}
+              onRestart={resetAllExperience}
             />
           ) : (
             <CategoryStage
